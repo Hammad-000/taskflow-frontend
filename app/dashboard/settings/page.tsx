@@ -1,16 +1,8 @@
 "use client";
-
-import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useState, useEffect, } from "react";
 import {
-  UserRound,
-  Bell,
-  Palette,
-  ShieldCheck,
-  Camera,
-  Save,
-  Mail,
-  LockKeyhole,
-  Monitor,
+  UserRound, Bell, Palette, ShieldCheck, Camera, Save, Mail, LockKeyhole, Monitor,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,20 +20,16 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [taskReminders, setTaskReminders] = useState(true);
   const [teamUpdates, setTeamUpdates] = useState(false);
-  const [theme, setTheme] = useState("system");
+  const { theme, setTheme } = useTheme();
   const [saved, setSaved] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const saveSettings = () => {
     const settings = {
-      name,
-      email,
-      role,
-      bio,
-      emailNotifications,
-      taskReminders,
-      teamUpdates,
-      theme,
-    };
+       name, email, role, bio, emailNotifications, taskReminders, teamUpdates, theme,};
 
     localStorage.setItem("taskflow-settings", JSON.stringify(settings));
     setSaved(true);
@@ -248,25 +236,27 @@ export default function SettingsPage() {
               <button
                 key={option.value}
                 onClick={() => setTheme(option.value)}
-                className={`rounded-xl border p-4 text-left transition-colors ${
-                  theme === option.value
+                className={`rounded-xl border p-4 text-left transition-colors ${mounted && theme === option.value
                     ? "border-primary bg-primary/5 ring-1 ring-primary"
                     : "hover:bg-muted/50"
-                }`}
+                  }`}
               >
                 <span className="text-xl">{option.icon}</span>
+
                 <p className="mt-3 font-medium">{option.label}</p>
+
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {theme === option.value ? "Selected" : "Choose theme"}
+                  {!mounted
+                    ? "Choose theme"
+                    : theme === option.value
+                      ? "Selected"
+                      : "Choose theme"}
                 </p>
               </button>
             ))}
           </div>
 
-          <p className="mt-3 text-xs text-muted-foreground">
-            Theme selection abhi preference ke taur par save hoti hai; poori app ka
-            theme change karne ke liye next step mein theme provider connect karenge.
-          </p>
+        
         </CardContent>
       </Card>
 
