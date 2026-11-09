@@ -1,8 +1,7 @@
 "use client";
 import { useTheme } from "next-themes";
 import { useState, useEffect, } from "react";
-import {
-  UserRound, Bell, Palette, ShieldCheck, Camera, Save, Mail, LockKeyhole, Monitor,
+import { UserRound, Bell, Palette, ShieldCheck, Camera, Save, Mail, LockKeyhole, Monitor,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

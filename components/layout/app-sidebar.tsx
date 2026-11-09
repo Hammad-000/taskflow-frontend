@@ -25,7 +25,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-
+import LogoutButton from "@/components/layout/logout-button";
 import { Button } from "@/components/ui/button";
 
 const mainLinks = [
@@ -148,29 +148,32 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              tooltip="Hammad · Free Plan"
-            >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
-                H
-              </div>
+<SidebarFooter className="p-2">
+  <SidebarMenu>
+    <SidebarMenuItem>
+      <div className="flex items-center gap-1">
+        <SidebarMenuButton
+          size="lg"
+          tooltip="Hammad · Free Plan"
+          className="flex-1"
+        >
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
+            H
+          </div>
 
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Hammad</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  Free Plan
-                </span>
-              </div>
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-semibold">Hammad</span>
+            <span className="truncate text-xs text-muted-foreground">
+              Free Plan
+            </span>
+          </div>
+        </SidebarMenuButton>
 
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+        <LogoutButton />
+      </div>
+    </SidebarMenuItem>
+  </SidebarMenu>
+</SidebarFooter>
     </Sidebar>
   );
 }
