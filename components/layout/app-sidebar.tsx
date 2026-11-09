@@ -10,8 +10,8 @@ import {
   Settings,
   Plus,
   Command,
-  ChevronsUpDown,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import {
   Sidebar,
@@ -53,6 +53,33 @@ const mainLinks = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+
+  const [user, setUser] = useState<{
+  name: string;
+  email: string;
+} | null>(null);
+
+useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setUser(data.user);
+    } catch (error) {
+      console.error("User fetch error:", error);
+    }
+  };
+
+  fetchUser();
+}, []);
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -154,17 +181,21 @@ export function AppSidebar() {
       <div className="flex items-center gap-1">
         <SidebarMenuButton
           size="lg"
-          tooltip="Hammad · Free Plan"
+          tooltip={user?.name || "My Profile"}
+          render={<Link href="/dashboard/profile" />}
           className="flex-1"
         >
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
-            H
+            {user?.name?.charAt(0).toUpperCase() || "U"}
           </div>
 
           <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">Hammad</span>
+            <span className="truncate font-semibold">
+              {user?.name || "Loading..."}
+            </span>
+
             <span className="truncate text-xs text-muted-foreground">
-              Free Plan
+              {user?.email || "Loading email..."}
             </span>
           </div>
         </SidebarMenuButton>
