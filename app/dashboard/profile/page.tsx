@@ -2,13 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  User,
-  Mail,
-  ShieldCheck,
-  CalendarDays,
-  Loader2,
-  ArrowLeft,
+import { User, Mail,  ShieldCheck, CalendarDays, Loader2, ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 

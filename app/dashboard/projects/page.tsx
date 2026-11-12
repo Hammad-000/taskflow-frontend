@@ -1,12 +1,11 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   FolderKanban,
   Plus,
   Search,
-  CalendarDays,
   Users,
   MoreHorizontal,
   ArrowUpRight,
@@ -17,7 +16,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,109 +31,151 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 type Project = {
-  id: number;
+  _id: string;
   name: string;
-  description: string;
-  status: "In Progress" | "Planning" | "Completed";
-  members: number;
-  dueDate: string;
+  description?: string;
+  status: "active" | "completed" | "on_hold";
 };
 
-const initialProjects: Project[] = [
-  {
-    id: 1,
-    name: "Website Redesign",
-    description: "Redesign the company website and improve user experience.",
-    status: "In Progress",
-    members: 5,
-    dueDate: "2026-11-15",
-  },
-  {
-    id: 2,
-    name: "Mobile Application",
-    description: "Build a responsive mobile application for customers.",
-    status: "Planning",
-    members: 3,
-    dueDate: "2026-12-01",
-  },
-  {
-    id: 3,
-    name: "Marketing Campaign",
-    description: "Plan and launch the next digital marketing campaign.",
-    status: "Completed",
-    members: 4,
-    dueDate: "2026-10-20",
-  },
-  {
-    id: 4,
-    name: "TaskFlow Dashboard",
-    description: "Develop the internal project management dashboard.",
-    status: "In Progress",
-    members: 6,
-    dueDate: "2026-11-25",
-  },
-];
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+const getStatusLabel = (status: Project["status"]) => {
+  const labels = {
+    active: "In Progress",
+    completed: "Completed",
+    on_hold: "Planning",
+  };
+
+  return labels[status];
+};
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
 
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+
+  // FETCH PROJECTS
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await fetch(`${API_URL}/api/projects`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to fetch projects");
+      }
+
+      setProjects(data.projects || []);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  // CREATE PROJECT
+  const createProject = async () => {
+    if (!name.trim()) return;
+
+    try {
+      setCreating(true);
+      setError("");
+
+      const res = await fetch(`${API_URL}/api/projects`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create project");
+      }
+
+      setProjects((current) => [data.project, ...current]);
+
+      setName("");
+      setDescription("");
+      setOpen(false);
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong"
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // SEARCH
   const filteredProjects = useMemo(
     () =>
       projects.filter((project) =>
-        `${project.name} ${project.description}`
+        `${project.name} ${project.description || ""}`
           .toLowerCase()
           .includes(search.toLowerCase())
       ),
     [projects, search]
   );
 
-  function createProject() {
-    if (!name.trim()) return;
-
-    const newProject: Project = {
-      id: Date.now(),
-      name: name.trim(),
-      description: description.trim() || "No description added yet.",
-      status: "Planning",
-      members: 1,
-      dueDate: dueDate || "Not set",
-    };
-
-    setProjects((current) => [newProject, ...current]);
-    setName("");
-    setDescription("");
-    setDueDate("");
-    setOpen(false);
-  }
-
   const completed = projects.filter(
-    (project) => project.status === "Completed"
+    (project) => project.status === "completed"
+  ).length;
+
+  const inProgress = projects.filter(
+    (project) => project.status === "active"
   ).length;
 
   return (
     <div className="space-y-8">
+      {/* HEADER */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <p className="text-sm text-muted-foreground">
             Workspace / Projects
           </p>
+
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             Projects
           </h1>
+
           <p className="mt-2 text-muted-foreground">
             Manage your projects and keep your team on track.
           </p>
         </div>
 
+        {/* CREATE DIALOG */}
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger
-            render={<Button className="gap-2" />}
-          >
+          <DialogTrigger render={<Button className="gap-2" />}>
             <Plus className="size-4" />
             Create Project
           </DialogTrigger>
@@ -153,6 +193,7 @@ export default function ProjectsPage() {
                 <label className="text-sm font-medium">
                   Project name
                 </label>
+
                 <Input
                   placeholder="e.g. Website Redesign"
                   value={name}
@@ -164,6 +205,7 @@ export default function ProjectsPage() {
                 <label className="text-sm font-medium">
                   Description
                 </label>
+
                 <Textarea
                   placeholder="What is this project about?"
                   value={description}
@@ -172,37 +214,44 @@ export default function ProjectsPage() {
                   }
                 />
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Due date
-                </label>
-                <Input
-                  type="date"
-                  value={dueDate}
-                  onChange={(event) => setDueDate(event.target.value)}
-                />
-              </div>
             </div>
 
             <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setOpen(false)}
+                disabled={creating}
               >
                 Cancel
               </Button>
+
               <Button
                 onClick={createProject}
-                disabled={!name.trim()}
+                disabled={!name.trim() || creating}
               >
-                Create Project
+                {creating ? "Creating..." : "Create Project"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* ERROR */}
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          {error}
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-3"
+            onClick={fetchProjects}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* STATS */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 p-5">
@@ -227,9 +276,7 @@ export default function ProjectsPage() {
               <p className="text-sm text-muted-foreground">
                 In Progress
               </p>
-              <p className="text-2xl font-bold">
-                {projects.filter((p) => p.status === "In Progress").length}
-              </p>
+              <p className="text-2xl font-bold">{inProgress}</p>
             </div>
           </CardContent>
         </Card>
@@ -249,11 +296,13 @@ export default function ProjectsPage() {
         </Card>
       </div>
 
+      {/* SEARCH */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">All Projects</h2>
 
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+
           <Input
             placeholder="Search projects..."
             className="pl-9"
@@ -263,11 +312,20 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {filteredProjects.length === 0 ? (
+      {/* PROJECT LIST */}
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Loading projects...
+          </CardContent>
+        </Card>
+      ) : filteredProjects.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center py-12 text-center">
             <FolderKanban className="mb-3 size-10 text-muted-foreground" />
+
             <p className="font-medium">No projects found</p>
+
             <p className="mt-1 text-sm text-muted-foreground">
               Try another search or create a new project.
             </p>
@@ -277,13 +335,14 @@ export default function ProjectsPage() {
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filteredProjects.map((project) => (
             <Card
-              key={project.id}
+              key={project._id}
               className="group transition-shadow hover:shadow-md"
             >
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
                 <div className="rounded-xl bg-primary/10 p-3 text-primary">
                   <FolderKanban className="size-5" />
                 </div>
+
                 <Button
                   variant="ghost"
                   size="icon"
@@ -302,38 +361,33 @@ export default function ProjectsPage() {
                 <div>
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold">{project.name}</h3>
+
                     <Badge
                       variant={
-                        project.status === "Completed"
+                        project.status === "completed"
                           ? "default"
-                          : project.status === "In Progress"
-                          ? "secondary"
-                          : "outline"
+                          : project.status === "active"
+                            ? "secondary"
+                            : "outline"
                       }
                     >
-                      {project.status}
+                      {getStatusLabel(project.status)}
                     </Badge>
                   </div>
+
                   <p className="line-clamp-2 text-sm text-muted-foreground">
-                    {project.description}
+                    {project.description || "No description added yet."}
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between border-t pt-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-2">
                     <Users className="size-4" />
-                    {project.members} members
+                    Team not added
                   </span>
-                  <span className="flex items-center gap-2">
-                    <CalendarDays className="size-4" />
-                    {project.dueDate === "Not set"
-                      ? "No deadline"
-                      : new Date(
-                          project.dueDate + "T12:00:00"
-                        ).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
+
+                  <span className="text-xs">
+                    Project
                   </span>
                 </div>
               </CardContent>
