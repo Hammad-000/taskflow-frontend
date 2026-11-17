@@ -123,8 +123,9 @@ export default function ProjectsPage() {
         projects={projects}
         onFilteredProjectsChange={handleFilteredProjects}
         onCreate={createProject}
-        onEdit={handleEdit}
-        onDelete={deleteProject}
+        onEdit={updateProject}
+        editingProject={editingProject}
+        onEditingProjectChange={setEditingProject}
       />
 
       {/* Projects List */}
@@ -171,11 +172,11 @@ export default function ProjectsPage() {
                     <div className="mt-3">{getStatus(project.status)}</div>
                   </div>
 
-                  <ProjectCardMenu
-                    project={project}
-                    onEdit={setEditingProject}
-                    onDelete={deleteProject}
-                  />
+                <ProjectCardMenu
+  project={project}
+  onEdit={setEditingProject}
+  onDelete={deleteProject}
+/>
                 </CardHeader>
 
                 <CardContent className="flex flex-1 flex-col">

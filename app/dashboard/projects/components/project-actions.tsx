@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Project } from "../hooks/use-projects";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,17 +24,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 
+// Props
 interface ProjectActionsProps {
   projects: Project[];
   onFilteredProjectsChange: (projects: Project[]) => void;
-  onCreate: (data: { name: string; description: string }) => Promise<any>;
+
+  onCreate: (data: {
+    name: string;
+    description: string;
+  }) => Promise<any>;
+
   onEdit: (
     id: string,
-    data: { name: string; description: string }
+    data: {
+      name: string;
+      description: string;
+    }
   ) => Promise<any>;
-  onDelete: (id: string) => Promise<void>;
+
+  editingProject: Project | null;
+  onEditingProjectChange: (project: Project | null) => void;
 }
 
 export function ProjectActions({
@@ -40,26 +59,34 @@ export function ProjectActions({
   onFilteredProjectsChange,
   onCreate,
   onEdit,
-  onDelete,
+  editingProject,
+  onEditingProjectChange,
 }: ProjectActionsProps) {
+  // Search and Filter
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
+  // Dialog
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+  // Form
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+
+  // Loading and Error
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState("");
 
+  // Search and Filter Logic
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      const searchValue = search.toLowerCase().trim();
+
       const matchesSearch =
-        project.name.toLowerCase().includes(search.toLowerCase()) ||
+        project.name.toLowerCase().includes(searchValue) ||
         (project.description || "")
           .toLowerCase()
-          .includes(search.toLowerCase());
+          .includes(searchValue);
 
       const matchesFilter =
         filter === "all" || project.status === filter;
@@ -68,31 +95,47 @@ export function ProjectActions({
     });
   }, [projects, search, filter]);
 
+  // Send filtered projects to parent
   useEffect(() => {
     onFilteredProjectsChange(filteredProjects);
   }, [filteredProjects, onFilteredProjectsChange]);
 
+  // Automatically open Edit Dialog when a project is selected
+  useEffect(() => {
+    if (editingProject) {
+      setName(editingProject.name);
+      setDescription(editingProject.description || "");
+      setActionError("");
+      setDialogOpen(true);
+    }
+  }, [editingProject]);
+
+  // Create Dialog
   const openCreateDialog = () => {
-    setEditingProject(null);
+    onEditingProjectChange(null);
+
     setName("");
     setDescription("");
     setActionError("");
     setDialogOpen(true);
   };
 
-  const openEditDialog = (project: Project) => {
-    setEditingProject(project);
-    setName(project.name);
-    setDescription(project.description || "");
+  // Close Dialog
+  const closeDialog = () => {
+    setDialogOpen(false);
+    onEditingProjectChange(null);
+
+    setName("");
+    setDescription("");
     setActionError("");
-    setDialogOpen(true);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  // Create and Edit Submit
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!name.trim()) {
-      setActionError("Project name is required");
+      setActionError("Project name is required.");
       return;
     }
 
@@ -111,32 +154,15 @@ export function ProjectActions({
         await onCreate(projectData);
       }
 
-      setDialogOpen(false);
-      setName("");
-      setDescription("");
-      setEditingProject(null);
-    } catch (err) {
+      closeDialog();
+    } catch (error) {
       setActionError(
-        err instanceof Error ? err.message : "Something went wrong"
+        error instanceof Error
+          ? error.message
+          : "Something went wrong."
       );
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleDelete = async (project: Project) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${project.name}"?`
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await onDelete(project._id);
-    } catch (err) {
-      window.alert(
-        err instanceof Error ? err.message : "Failed to delete project"
-      );
     }
   };
 
@@ -144,9 +170,13 @@ export function ProjectActions({
     <>
       {/* Search, Filters and Create */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
         <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+
+          {/* Search */}
           <div className="relative w-full sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
             <Input
               placeholder="Search projects..."
               value={search}
@@ -155,6 +185,7 @@ export function ProjectActions({
             />
           </div>
 
+          {/* Filter */}
           <select
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
@@ -165,21 +196,35 @@ export function ProjectActions({
             <option value="completed">Completed</option>
             <option value="on_hold">Planning</option>
           </select>
+
         </div>
 
+        {/* Create Button */}
         <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" />
           Create Project
         </Button>
       </div>
 
-      {/* Project Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Create / Edit Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog();
+          } else {
+            setDialogOpen(true);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingProject ? "Edit Project" : "Create New Project"}
+              {editingProject
+                ? "Edit Project"
+                : "Create New Project"}
             </DialogTitle>
+
             <DialogDescription>
               {editingProject
                 ? "Update your project details."
@@ -188,8 +233,13 @@ export function ProjectActions({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Project Name */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Project Name</label>
+              <label className="text-sm font-medium">
+                Project Name
+              </label>
+
               <Input
                 placeholder="Enter project name"
                 value={name}
@@ -198,8 +248,12 @@ export function ProjectActions({
               />
             </div>
 
+            {/* Description */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium">
+                Description
+              </label>
+
               <Textarea
                 placeholder="Enter project description"
                 value={description}
@@ -208,15 +262,19 @@ export function ProjectActions({
               />
             </div>
 
+            {/* Error */}
             {actionError && (
-              <p className="text-sm text-destructive">{actionError}</p>
+              <p className="text-sm text-destructive">
+                {actionError}
+              </p>
             )}
 
+            {/* Buttons */}
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setDialogOpen(false)}
+                onClick={closeDialog}
                 disabled={saving}
               >
                 Cancel
@@ -230,6 +288,7 @@ export function ProjectActions({
                     : "Create Project"}
               </Button>
             </DialogFooter>
+
           </form>
         </DialogContent>
       </Dialog>
@@ -237,7 +296,7 @@ export function ProjectActions({
   );
 }
 
-/* Three-dot menu for each project card */
+// Three Dot Project Menu
 export function ProjectCardMenu({
   project,
   onEdit,
@@ -247,6 +306,8 @@ export function ProjectCardMenu({
   onEdit: (project: Project) => void;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const [deleting, setDeleting] = useState(false);
+
   const handleDelete = async () => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${project.name}"?`
@@ -255,11 +316,16 @@ export function ProjectCardMenu({
     if (!confirmed) return;
 
     try {
+      setDeleting(true);
       await onDelete(project._id);
-    } catch (err) {
+    } catch (error) {
       window.alert(
-        err instanceof Error ? err.message : "Failed to delete project"
+        error instanceof Error
+          ? error.message
+          : "Failed to delete project."
       );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -267,24 +333,36 @@ export function ProjectCardMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon" aria-label="Project options">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Project options"
+          >
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         }
       />
+
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onEdit(project)}>
+
+        {/* Edit */}
+        <DropdownMenuItem
+          onClick={() => onEdit(project)}
+        >
           <Pencil className="mr-2 h-4 w-4" />
           Edit
         </DropdownMenuItem>
 
+        {/* Delete */}
         <DropdownMenuItem
           onClick={handleDelete}
+          disabled={deleting}
           className="text-destructive focus:text-destructive"
         >
           <Trash2 className="mr-2 h-4 w-4" />
-          Delete
+          {deleting ? "Deleting..." : "Delete"}
         </DropdownMenuItem>
+
       </DropdownMenuContent>
     </DropdownMenu>
   );
