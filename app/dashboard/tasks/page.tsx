@@ -10,6 +10,9 @@ import {
   Plus,
 } from "lucide-react";
 
+import AddTaskDialog from "@/components/task/add-task-dialog";
+import type { TaskInput } from "@/hooks/use-tasks";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +27,7 @@ export default function TasksPage() {
     tasks,
     loading,
     error,
+    createTask,
     updateTask,
     deleteTask,
   } = useTasks();
@@ -31,6 +35,21 @@ export default function TasksPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("All");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showAddTask, setShowAddTask] = useState(false);
+
+  const handleCreateTask = async (taskData: TaskInput) => {
+    setActionError(null);
+
+    try {
+      await createTask(taskData);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to create task";
+
+      setActionError(message);
+      throw err;
+    }
+  };
 
   const completedCount = tasks.filter(
     (task) => task.status === "done"
@@ -39,10 +58,10 @@ export default function TasksPage() {
   const pendingCount = tasks.length - completedCount;
 
   const filteredTasks = tasks.filter((task) => {
-  const projectName =
-  typeof task.projectId === "object" && task.projectId !== null
-    ? task.projectId.name
-    : "";
+    const projectName =
+      typeof task.projectId === "object" && task.projectId !== null
+        ? task.projectId.name
+        : "";
 
     const matchesSearch =
       task.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -125,13 +144,12 @@ export default function TasksPage() {
 
         <Button
           className="gap-2"
-          onClick={() =>
-            alert("Add Task form hum next step mein banayenge.")
-          }
+          onClick={() => setShowAddTask(true)}
         >
           <Plus size={18} />
           Add Task
         </Button>
+
       </div>
 
       {/* Statistics */}
@@ -278,8 +296,19 @@ export default function TasksPage() {
                 onDelete={handleDelete}
               />
             </div>
+            
           ))}
-      </div>
+                    <AddTaskDialog
+  open={showAddTask}
+  onClose={() => setShowAddTask(false)}
+  onSubmit={handleCreateTask}
+/>
+  </div>
+
+  
+          
+      
     </div>
+    
   );
 }
