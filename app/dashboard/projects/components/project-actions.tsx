@@ -32,7 +32,6 @@ import {
   Trash2,
 } from "lucide-react";
 
-// Props
 interface ProjectActionsProps {
   projects: Project[];
   onFilteredProjectsChange: (projects: Project[]) => void;
@@ -62,22 +61,17 @@ export function ProjectActions({
   editingProject,
   onEditingProjectChange,
 }: ProjectActionsProps) {
-  // Search and Filter
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  // Dialog
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Form
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  // Loading and Error
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  // Search and Filter Logic
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
       const searchValue = search.toLowerCase().trim();
@@ -95,12 +89,10 @@ export function ProjectActions({
     });
   }, [projects, search, filter]);
 
-  // Send filtered projects to parent
   useEffect(() => {
     onFilteredProjectsChange(filteredProjects);
   }, [filteredProjects, onFilteredProjectsChange]);
 
-  // Automatically open Edit Dialog when a project is selected
   useEffect(() => {
     if (editingProject) {
       setName(editingProject.name);
@@ -110,7 +102,6 @@ export function ProjectActions({
     }
   }, [editingProject]);
 
-  // Create Dialog
   const openCreateDialog = () => {
     onEditingProjectChange(null);
 
@@ -130,7 +121,6 @@ export function ProjectActions({
     setActionError("");
   };
 
-  // Create and Edit Submit
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -296,7 +286,6 @@ export function ProjectActions({
   );
 }
 
-// Three Dot Project Menu
 export function ProjectCardMenu({
   project,
   onEdit,

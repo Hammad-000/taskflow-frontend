@@ -172,11 +172,11 @@ export default function ProjectsPage() {
                     <div className="mt-3">{getStatus(project.status)}</div>
                   </div>
 
-                <ProjectCardMenu
-  project={project}
-  onEdit={setEditingProject}
-  onDelete={deleteProject}
-/>
+                  <ProjectCardMenu
+                    project={project}
+                    onEdit={setEditingProject}
+                    onDelete={deleteProject}
+                  />
                 </CardHeader>
 
                 <CardContent className="flex flex-1 flex-col">
